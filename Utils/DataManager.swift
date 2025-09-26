@@ -30,4 +30,13 @@ class DataManager {
         }
         return []
     }
+    
+    // ✅ Overwrite all bookings (used after deletion)
+    func overwriteBookings(_ data: [Booking]) {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        if let encodedData = try? encoder.encode(data) {
+            try? encodedData.write(to: fileURL)
+        }
+    }
 }

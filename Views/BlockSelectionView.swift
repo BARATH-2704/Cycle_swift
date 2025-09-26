@@ -8,7 +8,6 @@ struct BlockSelectionView: View {
     
     let blocks = ["MGB","PRP","SJT","TT","SMV","MB","CDMM","GDN"]
     
-    // ✅ Allowed routes based on your corrected list
     let allowedRoutes: [String: [String]] = [
         "MGB": ["TT","SMV","MB","CDMM","GDN"],
         "PRP": ["TT","SMV","MB","CDMM","GDN"],
@@ -20,7 +19,6 @@ struct BlockSelectionView: View {
         "GDN": ["MGB","PRP","SJT","TT","SMV"]
     ]
     
-    // Compute allowed destinations dynamically
     var allowedDestinations: [String] {
         return allowedRoutes[pickup] ?? []
     }
@@ -28,63 +26,81 @@ struct BlockSelectionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Text("Select your blocks")
-                    .font(.title)
+                Text("🚲 Cycle Booking")
+                    .font(.largeTitle)
                     .bold()
+                    .padding(.top)
                 
-                // Pickup Picker
-                Picker("Pickup", selection: $pickup) {
-                    ForEach(blocks, id: \.self) { block in
-                        Text(block)
+                VStack(spacing: 15) {
+                    // Pickup block card
+                    VStack(alignment: .leading) {
+                        Text("Pickup Location")
+                            .font(.headline)
+                        Picker("Pickup", selection: $pickup) {
+                            ForEach(blocks, id: \.self) { block in
+                                Text(block)
+                            }
+                        }
+                        .pickerStyle(.menu)
                     }
-                }
-                .pickerStyle(.menu)
-                .onChange(of: pickup) { _, _ in
-                    // Auto-adjust destination if not valid
-                    if !allowedDestinations.contains(destination) {
-                        destination = allowedDestinations.first ?? ""
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    
+                    // Destination block card
+                    VStack(alignment: .leading) {
+                        Text("Destination")
+                            .font(.headline)
+                        Picker("Destination", selection: $destination) {
+                            ForEach(allowedDestinations, id: \.self) { block in
+                                Text(block)
+                            }
+                        }
+                        .pickerStyle(.menu)
                     }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
                 }
-                
-                // Destination Picker
-                Picker("Destination", selection: $destination) {
-                    ForEach(allowedDestinations, id: \.self) { block in
-                        Text(block)
-                    }
-                }
-                .pickerStyle(.menu)
+                .padding(.horizontal)
                 
                 // Confirm Booking Button
-                Button("Confirm Booking") {
-                    confirmBooking()
+                Button(action: confirmBooking) {
+                    Label("Confirm Booking", systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .shadow(radius: 3)
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(.green)
-                .foregroundColor(.white)
-                .cornerRadius(8)
+                .padding(.horizontal)
                 
                 // View Booking History
-                NavigationLink("View Booking History") {
+                NavigationLink {
                     BookingHistoryView()
+                } label: {
+                    Label("View Booking History", systemImage: "clock.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .shadow(radius: 3)
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(.blue)
-                .foregroundColor(.white)
-                .cornerRadius(8)
+                .padding(.horizontal)
                 
-                // Error message
+                // Messages
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
                         .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
+                        .padding(.top, 10)
                 }
                 
-                // Success message
                 if bookingConfirmed {
-                    Text("Booking Confirmed: \(pickup) → \(destination)")
-                        .foregroundColor(.blue)
+                    Text("✅ Booking Confirmed: \(pickup) → \(destination)")
+                        .foregroundColor(.green)
+                        .padding(.top, 10)
                 }
                 
                 Spacer()
@@ -93,16 +109,12 @@ struct BlockSelectionView: View {
         }
     }
     
-    // Booking validation
     func confirmBooking() {
         if let allowed = allowedRoutes[pickup], allowed.contains(destination) {
             errorMessage = ""
             bookingConfirmed = true
-            
-            // ✅ Save booking locally
             let newBooking = Booking(pickup: pickup, destination: destination)
             DataManager.shared.saveBooking(newBooking)
-            
         } else {
             errorMessage = "Booking from \(pickup) to \(destination) is not allowed."
             bookingConfirmed = false
