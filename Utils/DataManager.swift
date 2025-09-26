@@ -2,36 +2,32 @@ import Foundation
 
 class DataManager {
     static let shared = DataManager()
-
-    func loadJSON<T: Decodable>(_ filename: String) -> T? {
-        guard let url = Bundle.main.url(forResource: filename, withExtension: "json") else {
-            print("❌ File not found: \(filename).json")
-            return nil
-        }
-
-        do {
-            let data = try Data(contentsOf: url)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let decodedData = try decoder.decode(T.self, from: data)
-            return decodedData
-        } catch {
-            print("❌ Failed to load or decode \(filename).json: \(error)")
-            return nil
+    private init() {}
+    
+    private let fileName = "bookings.json"
+    
+    private var fileURL: URL {
+        let manager = FileManager.default
+        let docs = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return docs.appendingPathComponent(fileName)
+    }
+    
+    // Save booking
+    func saveBooking(_ booking: Booking) {
+        var bookings = loadBookings()
+        bookings.append(booking)
+        
+        if let data = try? JSONEncoder().encode(bookings) {
+            try? data.write(to: fileURL)
         }
     }
-
-    func saveJSON<T: Encodable>(_ filename: String, data: T) {
-        do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .prettyPrinted
-            let encodedData = try encoder.encode(data)
-            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent(filename)
-            try encodedData.write(to: url)
-            print("✅ Saved \(filename) to documents folder")
-        } catch {
-            print("❌ Failed to save \(filename): \(error)")
+    
+    // Load bookings
+    func loadBookings() -> [Booking] {
+        if let data = try? Data(contentsOf: fileURL),
+           let bookings = try? JSONDecoder().decode([Booking].self, from: data) {
+            return bookings
         }
+        return []
     }
 }

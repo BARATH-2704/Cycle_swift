@@ -1,13 +1,15 @@
 import Foundation
 
-struct Booking: Codable, Identifiable {
-    var id: String { booking_id }
-    let booking_id: String
-    let userId: String
-    let cycleId: String
-    let pickupBlock: String
-    let destinationBlock: String
-    let startTime: Date
-    let endTime: Date
-    var status: String // "booked", "finished", "late"
+struct Booking: Identifiable, Codable {
+    let id: UUID
+    let pickup: String
+    let destination: String
+    let date: Date
+    
+    init(pickup: String, destination: String) {
+        self.id = UUID()
+        self.pickup = pickup
+        self.destination = destination
+        self.date = Date()
+    }
 }

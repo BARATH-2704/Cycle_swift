@@ -10,7 +10,7 @@ struct BlockSelectionView: View {
     
     // ✅ Allowed routes based on your corrected list
     let allowedRoutes: [String: [String]] = [
-        "MGB": ["TT","SMV","MB","CDMM","GDN","SJT"],
+        "MGB": ["TT","SMV","MB","CDMM","GDN"],
         "PRP": ["TT","SMV","MB","CDMM","GDN"],
         "SJT": ["MGB","TT","SMV","MB","CDMM","GDN"],
         "TT": ["MGB","PRP","SJT","MB","CDMM","GDN"],
@@ -18,7 +18,6 @@ struct BlockSelectionView: View {
         "MB": ["MGB","PRP","SJT","TT","SMV"],
         "CDMM": ["MGB","PRP","SJT","TT","SMV"],
         "GDN": ["MGB","PRP","SJT","TT","SMV"]
-        
     ]
     
     // Compute allowed destinations dynamically
@@ -27,56 +26,71 @@ struct BlockSelectionView: View {
     }
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Select your blocks").font(.title).bold()
-            
-            // Pickup Picker
-            Picker("Pickup", selection: $pickup) {
-                ForEach(blocks, id: \.self) { block in
-                    Text(block)
+        NavigationStack {
+            VStack(spacing: 20) {
+                Text("Select your blocks")
+                    .font(.title)
+                    .bold()
+                
+                // Pickup Picker
+                Picker("Pickup", selection: $pickup) {
+                    ForEach(blocks, id: \.self) { block in
+                        Text(block)
+                    }
                 }
-            }
-            .pickerStyle(.menu)
-            // iOS 17+ onChange syntax
-            .onChange(of: pickup) {
-                // If current destination is not allowed, auto-select first allowed destination
-                if !allowedDestinations.contains(destination) {
-                    destination = allowedDestinations.first ?? ""
+                .pickerStyle(.menu)
+                .onChange(of: pickup) { _, _ in
+                    // Auto-adjust destination if not valid
+                    if !allowedDestinations.contains(destination) {
+                        destination = allowedDestinations.first ?? ""
+                    }
                 }
-            }
-            
-            // Destination Picker
-            Picker("Destination", selection: $destination) {
-                ForEach(allowedDestinations, id: \.self) { block in
-                    Text(block)
+                
+                // Destination Picker
+                Picker("Destination", selection: $destination) {
+                    ForEach(allowedDestinations, id: \.self) { block in
+                        Text(block)
+                    }
                 }
-            }
-            .pickerStyle(.menu)
-            
-            // Confirm Booking Button
-            Button("Confirm Booking") {
-                confirmBooking()
+                .pickerStyle(.menu)
+                
+                // Confirm Booking Button
+                Button("Confirm Booking") {
+                    confirmBooking()
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(.green)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+                
+                // View Booking History
+                NavigationLink("View Booking History") {
+                    BookingHistoryView()
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(.blue)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+                
+                // Error message
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                }
+                
+                // Success message
+                if bookingConfirmed {
+                    Text("Booking Confirmed: \(pickup) → \(destination)")
+                        .foregroundColor(.blue)
+                }
+                
+                Spacer()
             }
             .padding()
-            .frame(maxWidth: .infinity)
-            .background(.green)
-            .foregroundColor(.white)
-            .cornerRadius(8)
-            
-            // Error message
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-            }
-            
-            // Success message
-            if bookingConfirmed {
-                Text("Booking Confirmed: \(pickup) → \(destination)")
-                    .foregroundColor(.blue)
-            }
         }
-        .padding()
     }
     
     // Booking validation
@@ -84,7 +98,11 @@ struct BlockSelectionView: View {
         if let allowed = allowedRoutes[pickup], allowed.contains(destination) {
             errorMessage = ""
             bookingConfirmed = true
-            // TODO: Save booking to local JSON / Firebase
+            
+            // ✅ Save booking locally
+            let newBooking = Booking(pickup: pickup, destination: destination)
+            DataManager.shared.saveBooking(newBooking)
+            
         } else {
             errorMessage = "Booking from \(pickup) to \(destination) is not allowed."
             bookingConfirmed = false
@@ -92,9 +110,6 @@ struct BlockSelectionView: View {
     }
 }
 
-// Preview
-struct BlockSelectionView_Previews: PreviewProvider {
-    static var previews: some View {
-        BlockSelectionView()
-    }
+#Preview {
+    BlockSelectionView()
 }
