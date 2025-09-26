@@ -12,6 +12,42 @@ class DataManager {
         let docs = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
         return docs.appendingPathComponent(bookingFile)
     }
+    // MARK: - Blocks
+    private let blocksFile = "blocks.json"
+
+    func loadBlocks() -> [Block] {
+        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(blocksFile)
+        
+        if let data = try? Data(contentsOf: url),
+           let blocks = try? JSONDecoder().decode([Block].self, from: data) {
+            return blocks
+        }
+        
+        // Default blocks if blocks.json does not exist
+        let defaultBlocks = [
+            Block(block_id: "MGB", name: "Mahatma Gandhi Block", allowedDestinations: ["TT","SMV","MB","CDMM","GDN"]),
+            Block(block_id: "PRP", name: "PRP", allowedDestinations: ["TT","SMV","MB","CDMM","GDN"]),
+            Block(block_id: "SJT", name: "SJT", allowedDestinations: ["MGB","TT","SMV","MB","CDMM","GDN"]),
+            Block(block_id: "TT", name: "TT", allowedDestinations: ["MGB","PRP","SJT","MB","CDMM","GDN"]),
+            Block(block_id: "SMV", name: "SMV", allowedDestinations: ["MGB","PRP","SJT","MB","CDMM","GDN"]),
+            Block(block_id: "MB", name: "MB", allowedDestinations: ["MGB","PRP","SJT","TT","SMV"]),
+            Block(block_id: "CDMM", name: "CDMM", allowedDestinations: ["MGB","PRP","SJT","TT","SMV"]),
+            Block(block_id: "GDN", name: "GDN", allowedDestinations: ["MGB","PRP","SJT","TT","SMV"])
+        ]
+        
+        saveBlocks(defaultBlocks)
+        return defaultBlocks
+    }
+
+    func saveBlocks(_ blocks: [Block]) {
+        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(blocksFile)
+        if let data = try? JSONEncoder().encode(blocks) {
+            try? data.write(to: url)
+        }
+    }
+
     
     // Save a booking
     func saveBooking(_ booking: Booking) {

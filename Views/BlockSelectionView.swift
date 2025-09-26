@@ -6,8 +6,10 @@ struct BlockSelectionView: View {
     @State private var errorMessage = ""
     @State private var bookingConfirmed = false
     
+    // List of all blocks
     let blocks = ["MGB","PRP","SJT","TT","SMV","MB","CDMM","GDN"]
     
+    // Allowed routes
     let allowedRoutes: [String: [String]] = [
         "MGB": ["TT","SMV","MB","CDMM","GDN"],
         "PRP": ["TT","SMV","MB","CDMM","GDN"],
@@ -19,6 +21,7 @@ struct BlockSelectionView: View {
         "GDN": ["MGB","PRP","SJT","TT","SMV"]
     ]
     
+    // Compute allowed destinations dynamically
     var allowedDestinations: [String] {
         return allowedRoutes[pickup] ?? []
     }
@@ -32,8 +35,8 @@ struct BlockSelectionView: View {
                     .padding(.top)
                 
                 VStack(spacing: 15) {
-                    // Pickup block card
-                    VStack(alignment: .leading) {
+                    // Pickup Location Card
+                    VStack(alignment: .leading, spacing: 5) {
                         Text("Pickup Location")
                             .font(.headline)
                         Picker("Pickup", selection: $pickup) {
@@ -42,13 +45,19 @@ struct BlockSelectionView: View {
                             }
                         }
                         .pickerStyle(.menu)
+                        .onChange(of: pickup) { oldValue, newValue in
+                            if !allowedDestinations.contains(destination) {
+                                destination = allowedDestinations.first ?? ""
+                            }
+                        }
+
                     }
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(10)
                     
-                    // Destination block card
-                    VStack(alignment: .leading) {
+                    // Destination Location Card
+                    VStack(alignment: .leading, spacing: 5) {
                         Text("Destination")
                             .font(.headline)
                         Picker("Destination", selection: $destination) {
@@ -76,7 +85,7 @@ struct BlockSelectionView: View {
                 }
                 .padding(.horizontal)
                 
-                // View Booking History
+                // Booking History Navigation
                 NavigationLink {
                     BookingHistoryView()
                 } label: {
@@ -109,11 +118,16 @@ struct BlockSelectionView: View {
         }
     }
     
+    // Booking validation and saving
     func confirmBooking() {
         if let allowed = allowedRoutes[pickup], allowed.contains(destination) {
             errorMessage = ""
             bookingConfirmed = true
+            
+            // Create new booking
             let newBooking = Booking(pickup: pickup, destination: destination)
+            
+            // Save booking locally
             DataManager.shared.saveBooking(newBooking)
         } else {
             errorMessage = "Booking from \(pickup) to \(destination) is not allowed."
