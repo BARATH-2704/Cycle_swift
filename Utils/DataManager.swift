@@ -4,24 +4,50 @@ class DataManager {
     static let shared = DataManager()
     private init() {}
     
-    private let fileName = "bookings.json"
+    // MARK: - Booking Storage
+    private let bookingFile = "bookings.json"
     
-    private var fileURL: URL {
+    private var bookingFileURL: URL {
         let manager = FileManager.default
         let docs = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        return docs.appendingPathComponent(fileName)
+        return docs.appendingPathComponent(bookingFile)
     }
     
-    // Save booking
+    // Save a booking
     func saveBooking(_ booking: Booking) {
         var bookings = loadBookings()
-        bookings.append(booking)
+        var newBooking = booking
+        newBooking.userEmail = loadUser()?.email ?? "unknown"
+        bookings.append(newBooking)
         
         if let data = try? JSONEncoder().encode(bookings) {
-            try? data.write(to: fileURL)
+            try? data.write(to: bookingFileURL)
         }
     }
     
+    // Load bookings (all or filtered by user email)
+    func loadBookings(for email: String? = nil) -> [Booking] {
+        var allBookings: [Booking] = []
+        if let data = try? Data(contentsOf: bookingFileURL),
+           let bookings = try? JSONDecoder().decode([Booking].self, from: data) {
+            allBookings = bookings
+        }
+        if let email = email {
+            return allBookings.filter { $0.userEmail == email }
+        }
+        return allBookings
+    }
+    
+    // Overwrite all bookings
+    func overwriteBookings(_ data: [Booking]) {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        if let encodedData = try? encoder.encode(data) {
+            try? encodedData.write(to: bookingFileURL)
+        }
+    }
+    
+    // MARK: - User Storage
     private let userFile = "user.json"
     
     private var userFileURL: URL {
@@ -50,24 +76,24 @@ class DataManager {
     func clearUser() {
         try? FileManager.default.removeItem(at: userFileURL)
     }
-
     
-    
-    // Load bookings
-    func loadBookings() -> [Booking] {
-        if let data = try? Data(contentsOf: fileURL),
-           let bookings = try? JSONDecoder().decode([Booking].self, from: data) {
-            return bookings
-        }
-        return []
+    // MARK: - Wallet Operations
+    // Add money to wallet
+    func updateWallet(for email: String, amount: Double) {
+        guard var user = loadUser(), user.email == email else { return }
+        user.walletBalance += amount
+        saveUser(user)
     }
     
-    // ✅ Overwrite all bookings (used after deletion)
-    func overwriteBookings(_ data: [Booking]) {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        if let encodedData = try? encoder.encode(data) {
-            try? encodedData.write(to: fileURL)
+    // Deduct money from wallet (returns false if insufficient funds)
+    func deductWallet(for email: String, amount: Double) -> Bool {
+        guard var user = loadUser(), user.email == email else { return false }
+        if user.walletBalance >= amount {
+            user.walletBalance -= amount
+            saveUser(user)
+            return true
+        } else {
+            return false
         }
     }
 }
