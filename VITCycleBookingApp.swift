@@ -4,7 +4,11 @@ import SwiftUI
 struct VITCycleBookingApp: App {
     var body: some Scene {
         WindowGroup {
-            LoginView() // Start app from login
+            if DataManager.shared.loadUser() == nil {
+                LoginView()
+            } else {
+                MainTabView()
+            }
         }
     }
 }
